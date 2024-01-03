@@ -1,0 +1,68 @@
+name: Build and release app | Ubuntu
+description: Build and release app for Android and Web
+runs:
+  using: composite
+
+  steps:
+    - name: Gradle Cache
+      uses: burrunan/gradle-cache-action@v1
+      with:
+        build-root-directory: android
+        gradle-distribution-sha-256-sum-warning: false
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install -y ninja-build build-essential libgtk-3-dev
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: 17
+        distribution: temurin
+        cache: gradle
+
+    - name: Build app | Android
+      shell: bash
+      run: |
+        flutter build apk \
+          --verbose \
+          --flavor tst \
+          -t lib/main_tst.dart \
+          --build-name ${{ env.BUILD_NAME }} \
+          --build-number ${{ env.BUILD_NUMBER }}
+
+    - name: Build app | Web
+      shell: bash
+      run: |
+        flutter build web \
+          --verbose \
+          -t lib/main_tst.dart \
+          --dart-define=BROWSER_IMAGE_DECODING_ENABLED=false \
+          --build-name ${{ env.BUILD_NAME }} \
+          --build-number ${{ env.BUILD_NUMBER }} \
+          --base-href "/crypto-app/"
+
+    - name: Rename output files
+      shell: bash
+      run: |
+        APK_PATH="CryptoApp-${{ env.BUILD_NAME }}-tst.apk"
+        echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+
+        mkdir artifacts
+        mv build/app/outputs/flutter-apk/app-tst-release.apk "artifacts/$APK_PATH"
+
+    - name: Upload artifacts | Android
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.APK_PATH }}
+        path: artifacts/${{ env.APK_PATH }}
+
+    - name: Upload GitHub Pages artifact
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: build/web
+
+    - name: Deploy GitHub Pages site
+      uses: actions/deploy-pages@v2

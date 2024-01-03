@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+
+Name=ApplinksFlatpak
+Comment= Test opening applinks in linux build with flatpak
+Categories=Utility;
+
+Icon=com.llfbandit.example
+Exec=ApplinksFlatpak %U
+Terminal=false
+StartupWMClass=ApplinksFlatpak
+MimeType=x-scheme-handler/applinksflatpak;
+
+# TODO: Consult with client and edit file content before release

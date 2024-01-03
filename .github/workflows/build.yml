@@ -1,0 +1,47 @@
+name: Build App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      BUILD_NAME: 1.0.${{ github.run_number }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set Flutter version
+        uses: kuhnroyal/flutter-fvm-config-action@v1
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Install dependencies
+        run: |
+          flutter pub get
+
+      - name: Build | Ubuntu
+        if: matrix.os == 'ubuntu-latest'
+        uses: ./.github/workflows/build-ubuntu
+
+  build-flatpak:
+    uses: ./.github/workflows/build_flatpak.yml

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+    Generator for metainfo & .desktop files: 
+    https://www.freedesktop.org/software/appstream/metainfocreator/#/
+-->
+<component type="desktop-application">
+  <id>com.llfbandit.example</id>
+  <name>ApplinksFlatpak</name>
+  <summary>summary</summary>
+  <developer_name>ApplinksFlatpak</developer_name>
+  <metadata_license>MIT</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <url type="homepage">https://github.com/jancodes101/app_links_flatpak_poc</url>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <description>
+    <p>summary (...)</p>
+  </description>
+  <launchable type="desktop-id">com.llfbandit.example.desktop</launchable>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="1.0.0" date="2023-12-03" />
+  </releases>
+</component>

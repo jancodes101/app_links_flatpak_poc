@@ -1,0 +1,90 @@
+name: Build Flatpak | Linux
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push: # TODO remove before merge
+
+env:
+  PROJECT_NAME: ApplinksFlatpakPoc
+  APPLICATION_ID: com.llfbandit.example
+  BUILD_NAME: 1.0.${{ github.run_number }}
+  BUILD_NUMBER: ${{ github.run_number }}
+
+jobs:
+  build-flutter-app:
+    name: Build ApplinksFlatpakPoc app on Linux
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set Flutter version
+        uses: kuhnroyal/flutter-fvm-config-action@v1
+
+      - name: Install Flutter dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libx11-dev pkg-config cmake ninja-build libblkid-dev
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Build ApplinksFlatpakPoc app linux version
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./tools/build_flutter_app.sh
+        env:
+          BUILD_NUMBER: ${{ env.BUILD_NUMBER }}
+          BUILD_NAME: ${{ env.BUILD_NAME }}
+
+      - name: Upload app archive to workflow
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PROJECT_NAME }}-Linux-Archive
+          path: ${{ env.PROJECT_NAME }}-Linux-Portable.tar.gz
+
+  build-flatpak:
+    name: Build flatpak
+    needs: build-flutter-app
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:freedesktop-22.08
+      options: --privileged
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download ApplinksFlatpakPoc-Linux-Archive artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.PROJECT_NAME }}-Linux-Archive
+          path: ./
+
+      - name: Set the app version and release date in the metainfo file
+        run: |
+          sudo dnf -y install xmlstarlet
+          xmlstarlet ed -L -u "/component/releases/release/@version" -v "${{ env.BUILD_NAME }}" packaging/linux/${{ env.APPLICATION_ID }}.metainfo.xml
+          xmlstarlet ed -L -u "/component/releases/release/@date" -v "$(date +'%Y-%m-%d')" packaging/linux/${{ env.APPLICATION_ID }}.metainfo.xml
+
+      - name: Build ApplinksFlatpakPoc.flatpak
+        uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: ${{ env.PROJECT_NAME }}.flatpak
+          manifest-path: ./flathub_repo/${{ env.APPLICATION_ID }}.yml
+
+      - name: Remove intermediate artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            ${{ env.PROJECT_NAME }}-Linux-Archive
+            ${{ env.PROJECT_NAME }}-x86_64
+
+      - name: Upload ApplinksFlatpakPoc.flatpak artifact to workflow
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PROJECT_NAME }}.flatpak-${{ env.BUILD_NAME }}
+          path: ${{ env.PROJECT_NAME }}.flatpak
